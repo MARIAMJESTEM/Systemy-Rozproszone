@@ -6,5 +6,5 @@ class Buffer:
         self.matrix = np.array([])
         self.satelite: Satelite
 
-    def add(self,posX: int, posY: int):
+    def addToBuffer(self,posX: int, posY: int, posZ: int, val: int):
         ...
