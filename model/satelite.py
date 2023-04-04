@@ -1,25 +1,40 @@
 from typing import List
 import math
+import matplotlib.pyplot as plt
 
-class Satelite:
-    def __init__(self, name: str, orbitRadius: float ) -> None:
+
+class Satellite:
+    def __init__(self, name: str, orbit_radius: float) -> None:
         self.name = name
-        self.orbitRadius = orbitRadius #in meters
-        self.velocity = math.sqrt((39,8866*math.pow(10,13))/self.orbitRadius)
-        self.position: List = [0, self.orbitRadius] #TO DO: add starting position 
-        self.isTransmiting: bool = False 
-        self.dataPath:str = ... #TO DO
-        self.currentimage:str = ... #TO DO
-        self.timePeriod = int((2*math.pi)/self.velocity) 
+        self.orbit_radius = orbit_radius  # in meters
+        self.velocity = math.sqrt(39.8866e13 / self.orbit_radius)
+        self.is_transmitting: bool = False
+        self.dataPath: str = ...  # TO DO
+        self.current_image: str = ...  # TO DO
+        self.position: List = [0, self.orbit_radius]
+        self.alpha = self.velocity / self.orbit_radius
 
-    def calculatePosition(self, time) -> List[int,int]:
-        # TODO: nie testowałam jeszcze tego ale chciałam dodać żeby było widac że jest zaczete
-        if time%self.timePeriod == 0: # if satelite is were it started:
-            self.position = [0,self.orbitRadius]
-            return self.position
-        alpha = time*360/self.timePeriod
-        self.position = [int(self.position[0]+self.orbitRadius*math.cos(alpha)),int(self.position[1]+self.orbitRadius*math.sin(alpha))]
-        return self.position
-        
-    def transmitData(self, pixel_coordinates: List):
+    def calculate_next_position(self):
+        if self.position[0] == 0 and self.position[1] > 0:
+            phi = math.pi / 2
+        elif self.position[0] == 0 and self.position[1] < 0:
+            phi = 1.5 * math.pi
+        else:
+            phi = math.atan2(self.position[1], self.position[0])
+        beta = phi - self.alpha
+        self.position = [self.orbit_radius * math.cos(beta), self.orbit_radius * math.sin(beta)]
+
+    def transmit_data(self, pixel_coordinates: List):
         ...
+
+
+S = Satellite('Andrzej', 42160000)
+
+X, Y = [], []
+for i in range(86000):
+    X.append(S.position[0])
+    Y.append(S.position[1])
+    S.calculate_next_position()
+
+plt.plot(X, Y, '-.')
+plt.show()
