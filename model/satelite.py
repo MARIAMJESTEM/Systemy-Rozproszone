@@ -9,7 +9,7 @@ import threading
 
 
 class Satellite(threading.Thread):
-    def __init__(self, name: str, orbit_radius: float, end_time: int, station, color: str = 'red') -> None:
+    def __init__(self, name: str, orbit_radius: float, station, color: str = 'red') -> None:
         super().__init__()
         self.name = name
         self.orbit_radius = orbit_radius  # in meters
@@ -21,16 +21,17 @@ class Satellite(threading.Thread):
         self.position: List = [0, self.orbit_radius]
         self.alpha = self.velocity / self.orbit_radius
         self.color = color
-        self.end_time = end_time
         self.station = station
 
     def run(self):
-        self.add_satellite_db()
-        self.station.addSatelite(self)
-        for _ in range(self.end_time):
-            self.calculate_next_position()
-            if self.is_transmitting:
-                self.station.transmit_data(self)
+        while True:
+            try:
+                self.calculate_next_position()
+                if self.is_transmitting:
+                    self.station.transmit_data(self)
+            except AttributeError:
+                print(f'Thread {self.name} closed.')
+                return
 
     def calculate_next_position(self):
         phi = math.atan2(self.position[1], self.position[0])
@@ -58,28 +59,18 @@ class Satellite(threading.Thread):
         return path
 
     def delete_satellite_db(self):
-        print('In delete_satellite_db()')
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data/satelites")) + "\\{}".format(self.name)
-        try:
-            print('In TRY delete_satellite_db()')
-            os.remove(path)
-            print('Path removed in delete_satellite_db()')
-        except Error:
-            print('In FileNotFoundError')
+        shutil.rmtree(path)
         
     def delete_image(self, filename):
         file_path = os.path.join(self.data_path, filename)
         if os.path.exists(file_path):
             os.remove(file_path)
-        else:
-            raise FileNotFoundError("No file to delete found in directory")
 
     def get_current_image(self) -> str:
         files = os.listdir(self.data_path)
         if len(files) != 0:
             return files[0]
-        # else:
-        #     raise FileNotFoundError("No files found in directory")
 
     def is_available(self):
         return -2 * self.position[0] <= self.position[1] >= 2 * self.position[0]
