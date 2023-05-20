@@ -9,9 +9,30 @@ import shutil
 class Station:
     def __init__(self) -> None:
         self.satellitesDict: Dict[Satellite, List] = {}
+        self.occupied_by = None
 
     def transmit_data(self, satellite: Satellite):
         if satellite not in self.satellitesDict:
+            return
+
+        if self.occupied_by != satellite.name and self.occupied_by is not None:
+            return
+
+        if self.occupied_by is None:
+            self.occupied_by = satellite.name
+            print(f'Satellite {satellite.name} starts transmission')
+
+        if self.occupied_by is None:
+            return
+
+        if not satellite.is_available():
+            self.occupied_by = None
+            print(f'Satellite {satellite.name} ends transmission (not available)')
+            return
+
+        if satellite.get_image_count() == 0:
+            self.occupied_by = None
+            print(f'Satellite {satellite.name} ends transmission (no images to send)')
             return
 
         try:
@@ -42,8 +63,9 @@ class Station:
                     satellite.pixel_coordinates[1] += 1
             self.satellitesDict[satellite] = buffer
         except KeyError:
-            pass
+            self.occupied_by = None
         except TypeError:
+            self.occupied_by = None
             try:
                 satellite.current_image = satellite.get_current_image()
                 self.satellitesDict[satellite] = self.create_new_buffer(satellite)
@@ -58,8 +80,6 @@ class Station:
             return [source_image, destination_image]
 
     def addSatelite(self, satellite: Satellite):
-        # Możemy tutaj dodać, więcej ograniczeń co do dodawania stacji. Jakiś kraj pochodzenia satelity czy coś innego
-
         if satellite not in self.satellitesDict:
             self.satellitesDict[satellite] = self.create_new_buffer(satellite)
             # creating space in database for satelite
@@ -73,6 +93,9 @@ class Station:
     def deleteSatelite(self, satellite: Satellite):
         if satellite not in self.satellitesDict:
             return
+
+        if self.occupied_by == satellite.name:
+            self.occupied_by = None
 
         db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../data/base") + "\\{}".format(
             satellite.name))
@@ -93,5 +116,4 @@ class Station:
         del self.satellitesDict[satellite]
         satellite.station = None
         os.rmdir(db_path)
-        # satellite.delete_satellite_db()
         shutil.rmtree(os.path.abspath(os.path.join(os.path.dirname(__file__), "../data/satelites")) + "\\{}".format(satellite.name))

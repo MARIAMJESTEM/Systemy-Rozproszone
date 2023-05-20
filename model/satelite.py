@@ -9,12 +9,11 @@ import threading
 
 
 class Satellite(threading.Thread):
-    def __init__(self, name: str, orbit_radius: float, station, color: str = 'red') -> None:
+    def __init__(self, name: str, orbit_radius: float, station, lamp_availability, lamp_transmitting, color: str = 'red') -> None:
         super().__init__()
         self.name = name
         self.orbit_radius = orbit_radius  # in meters
         self.velocity = math.sqrt(GM / self.orbit_radius)
-        self.is_transmitting: bool = True
         self.data_path: str = self.add_satellite_db()
         self.current_image: str = self.get_current_image()
         self.pixel_coordinates = [0, 0]
@@ -22,15 +21,21 @@ class Satellite(threading.Thread):
         self.alpha = self.velocity / self.orbit_radius
         self.color = color
         self.station = station
+        self.lamp_availability = lamp_availability
+        self.lamp_transmitting = lamp_transmitting
 
     def run(self):
         while True:
             try:
                 self.calculate_next_position()
-                if self.is_transmitting:
+                self.manage_lamps()
+                if self.is_available() and self.get_image_count() > 0:
                     self.station.transmit_data(self)
+                else:
+                    if self.station.occupied_by == self.name:
+                        print(f'Satellite {self.name} ends transmission')
+                        self.station.occupied_by = None
             except AttributeError:
-                print(f'Thread {self.name} closed.')
                 return
 
     def calculate_next_position(self):
@@ -72,5 +77,27 @@ class Satellite(threading.Thread):
         if len(files) != 0:
             return files[0]
 
+    def get_image_count(self) -> int:
+        files = os.listdir(self.data_path)
+        return len(files)
+
     def is_available(self):
         return -2 * self.position[0] <= self.position[1] >= 2 * self.position[0]
+
+    def manage_lamps(self):
+        if self.is_available():
+            if self.lamp_availability.palette().button().color().name() != '#00ff00':
+                self.lamp_availability.setStyleSheet("background-color:#00ff00")
+
+            if self.station.occupied_by == self.name:
+                if self.lamp_transmitting.palette().button().color().name() != '#00ff00':
+                    self.lamp_transmitting.setStyleSheet("background-color:#00ff00")
+            else:
+                if self.lamp_transmitting.palette().button().color().name() != '#ff0000':
+                    self.lamp_transmitting.setStyleSheet("background-color:#ff0000")
+        else:
+            if self.lamp_availability.palette().button().color().name() != '#ff0000':
+                self.lamp_availability.setStyleSheet("background-color:#ff0000")
+            if self.lamp_transmitting.palette().button().color().name() != '#ff0000':
+                self.lamp_transmitting.setStyleSheet("background-color:#ff0000")
+
